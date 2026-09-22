@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmación de Entradas - EventHub</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .header { background: #1e293b; color: #ffffff; padding: 24px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .content { padding: 24px; color: #334155; }
+        .badge { display: inline-block; padding: 6px 12px; background: #22c55e; color: #ffffff; border-radius: 20px; font-weight: bold; font-size: 12px; }
+        .details-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .details-table td { padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+        .ticket-card { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 16px; margin-top: 12px; text-align: center; }
+        .footer { background: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>EventHub</h1>
+        <p style="margin: 4px 0 0 0; font-size: 14px; color: #94a3b8;">¡Tus entradas están listas!</p>
+    </div>
+    <div class="content">
+        <span class="badge">PAGO CONFIRMADO</span>
+        <h2 style="margin-top: 12px;">Hola, <span th:text="${userName}">Corredor</span></h2>
+        <p>Tu pago para el evento ha sido procesado exitosamente. A continuación encuentras el resumen de tu compra:</p>
+
+        <table class="details-table">
+            <tr>
+                <td><strong>Reserva ID:</strong></td>
+                <td th:text="${bookingId}" style="text-align: right;">-</td>
+            </tr>
+            <tr>
+                <td><strong>Transacción:</strong></td>
+                <td th:text="${transactionId}" style="text-align: right;">-</td>
+            </tr>
+            <tr>
+                <td><strong>Monto Total:</strong></td>
+                <td th:text="${'$' + amount}" style="text-align: right; color: #16a34a; font-weight: bold;">-</td>
+            </tr>
+        </table>
+
+        <h3 style="margin-top: 24px;">Tus Entradas Generadas</h3>
+        <div th:each="ticket : ${tickets}" class="ticket-card">
+            <p style="margin: 0; font-weight: bold; color: #0f172a;" th:text="${ticket.tierName}">10K VIP</p>
+            <p style="margin: 4px 0; font-size: 12px; color: #64748b;">Código de Acceso / Hash QR:</p>
+            <code style="background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 13px;" th:text="${ticket.qrCodeHash}">HASH-QR-CODE</code>
+        </div>
+    </div>
+    <div class="footer">
+        <p>© 2026 EventHub Platform. Todos los derechos reservados.</p>
+    </div>
+</div>
+</body>
+</html>

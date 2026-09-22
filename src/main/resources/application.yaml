@@ -1,0 +1,31 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: notification-service
+  profiles:
+    active: dev
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://eventhub:SuperSecretMongoPassword2026!@localhost:27017/eventhub_notifications_db?authSource=admin}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:juangamerospina@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:mmoktjqbbnsxdscx}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+gateway:
+  internal-secret: ${GATEWAY_INTERNAL_SECRET:EventHubInternalSecretKey2026!}
