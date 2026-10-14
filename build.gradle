@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.1.1'
+	id 'org.springframework.boot' version '3.4.1' // Ajusta según la versión exacta de tu proyecto
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -17,16 +17,36 @@ repositories {
 	mavenCentral()
 }
 
+ext {
+	set('springCloudVersion', "2024.0.0") // BOM de Spring Cloud compatible con Java 21 y Spring Boot 3.4.x
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+	implementation 'com.github.librepdf:openpdf:1.3.30'
+
+	// Generador de Código QR en memoria
+	implementation 'com.google.zxing:core:3.5.3'
+	implementation 'com.google.zxing:javase:3.5.3'
+
+	// Feign Client para consultar branding a event-service
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
 }
 
 tasks.named('test') {
