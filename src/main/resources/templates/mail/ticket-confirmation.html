@@ -14,7 +14,8 @@
             padding: 24px;
             text-align: center;
         }
-        .header img { max-height: 60px; margin-bottom: 12px; }
+        .banner-img { max-width: 100%; height: auto; border-radius: 6px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
+        .logo-img { max-height: 60px; margin-bottom: 12px; }
         .header h1 { margin: 0; font-size: 22px; }
 
         .content { padding: 24px; color: #334155; }
@@ -40,7 +41,18 @@
 <body>
 <div class="container">
     <div class="header">
-        <img th:if="${branding != null and branding.logoUrl != null}" th:src="${branding.logoUrl}" alt="Logo del Evento" />
+        <!-- Banner promocional del evento (si está configurado en S3) -->
+        <img th:if="${branding != null and branding.bannerUrl != null}"
+             th:src="${branding.bannerUrl}"
+             alt="Banner del Evento"
+             class="banner-img" />
+
+        <!-- Logo del Evento (si está configurado en S3) -->
+        <img th:if="${branding != null and branding.logoUrl != null}"
+             th:src="${branding.logoUrl}"
+             alt="Logo del Evento"
+             class="logo-img" />
+
         <h1 th:text="${event != null ? event.title : 'EventHub'}">Nombre del Evento</h1>
         <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;" th:text="${event != null ? event.location : 'Ubicación'}">Lugar</p>
     </div>
@@ -65,7 +77,7 @@
         <div th:each="ticket : ${tickets}" class="ticket-card">
             <p style="margin: 0; font-weight: bold; color: #0f172a;" th:text="${ticket.tierName}">VIP</p>
 
-            <!-- Modificado: Mensaje indicando que el ticket QR va adjunto en el PDF -->
+            <!-- Mensaje indicando que el ticket QR va adjunto en el PDF -->
             <p style="margin: 12px 0; font-size: 13px; color: #3b82f6; font-weight: 500;">
                 📄 Tu entrada oficial con el código QR para el acceso se encuentra adjunta en formato PDF.
             </p>
