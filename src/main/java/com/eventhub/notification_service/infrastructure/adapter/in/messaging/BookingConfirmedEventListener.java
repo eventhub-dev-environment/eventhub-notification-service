@@ -1,5 +1,9 @@
 package com.eventhub.notification_service.infrastructure.adapter.in.messaging;
 
+import com.eventhub.notification_service.domain.model.Notification;
+import com.eventhub.notification_service.domain.model.NotificationStatus;
+import com.eventhub.notification_service.domain.model.NotificationType;
+import com.eventhub.notification_service.domain.port.out.NotificationRepositoryPort;
 import com.eventhub.notification_service.domain.util.PdfTicketGenerator;
 import com.eventhub.notification_service.domain.util.QRCodeGenerator;
 import com.eventhub.notification_service.infrastructure.adapter.out.email.EmailServiceAdapter;
@@ -9,11 +13,13 @@ import com.eventhub.notification_service.infrastructure.adapter.out.feign.dto.Ev
 import com.eventhub.notification_service.infrastructure.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,20 +31,35 @@ public class BookingConfirmedEventListener {
 
     private final EmailServiceAdapter emailServiceAdapter;
     private final EventServiceClient eventServiceClient;
+    private final NotificationRepositoryPort notificationRepositoryPort;
 
     @Value("${gateway.internal-secret:internal-secret-eventhub-2026}")
     private String gatewaySecret;
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_BOOKING_CONFIRMED_QUEUE)
     public void handleBookingConfirmed(Map<String, Object> event) {
-        log.info(">>>> EVENTO BOOKING_CONFIRMED RECIBIDO EN NOTIFICATION-SERVICE: {}", event);
-
         String bookingId = (String) event.get("bookingId");
         String eventId = (String) event.get("eventId");
         String userId = (String) event.get("userId");
+        String userEmail = (String) event.get("userEmail");
+        String transactionId = (String) event.get("transactionId");
+        Object totalPrice = event.get("totalPrice");
+
+        if (isBlank(bookingId) || isBlank(eventId) || isBlank(userId)
+                || isBlank(userEmail) || isBlank(transactionId) || totalPrice == null) {
+            log.error("Evento de reserva confirmado inválido; falta información requerida para enviar la notificación");
+            throw new AmqpRejectAndDontRequeueException("Evento de reserva confirmado incompleto");
+        }
+
+        log.info("Evento de reserva confirmada recibido para bookingId: {}", bookingId);
+
+        // 1. Extraer datos dinámicos del payload (sin valores quemados)
+        String userName = event.get("userName") != null ? (String) event.get("userName") : "Usuario EventHub";
+        BigDecimal amount = new BigDecimal(totalPrice.toString());
+
         List<Map<String, Object>> rawTickets = (List<Map<String, Object>>) event.get("tickets");
 
-        // 1. Obtener Branding desde event-service vía Feign
+        // 2. Obtener Branding desde event-service vía Feign
         EventResponseDto eventData = null;
         try {
             ApiResponse<EventResponseDto> response = eventServiceClient.getEventById(eventId, gatewaySecret);
@@ -49,8 +70,7 @@ public class BookingConfirmedEventListener {
             log.warn("No se pudo obtener la información de branding para el evento {}: {}", eventId, e.getMessage());
         }
 
-        // 2. Procesar tickets y generar imágenes QR en bytes
-        // 2. Procesar tickets y generar imágenes QR en bytes
+        // 3. Procesar tickets y generar imágenes QR dinámicas
         List<Map<String, Object>> processedTickets = new ArrayList<>();
         if (rawTickets != null) {
             for (Map<String, Object> t : rawTickets) {
@@ -69,22 +89,39 @@ public class BookingConfirmedEventListener {
             }
         }
 
-        String userName = "Juan Pablo";
-        String userEmail = "runner.juank2026@gmail.com";
-
-        // 3. Generar el PDF
+        // 4. Generar el PDF oficial del ticket
         byte[] pdfBytes = PdfTicketGenerator.generateTicketPdf(userName, bookingId, eventData, processedTickets);
 
-        // 4. Despachar correo con PDF adjunto
+        // 5. Despachar correo con PDF adjunto
+        String eventTitle = eventData != null ? eventData.getTitle() : "Evento EventHub";
+        String subject = "Tus Entradas - " + eventTitle;
+
         emailServiceAdapter.sendTicketConfirmationEmail(
                 userEmail,
                 userName,
                 bookingId,
-                "TXN-" + System.currentTimeMillis(),
-                BigDecimal.valueOf(85000),
+                transactionId,
+                amount,
                 eventData,
                 processedTickets,
                 pdfBytes
         );
+
+        // 6. Persistir el registro de notificación en MongoDB
+        notificationRepositoryPort.save(Notification.builder()
+                .userId(userId)
+                .recipientEmail(userEmail)
+                .subject(subject)
+                .message("Confirmación y tickets enviados para la reserva " + bookingId)
+                .type(NotificationType.BOOKING_CONFIRMED)
+                .status(NotificationStatus.SENT)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        log.info(">>>> NOTIFICACIÓN GUARDADA EN MONGODB PARA EL USUARIO {}", userId);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
