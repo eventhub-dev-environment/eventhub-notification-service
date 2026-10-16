@@ -29,7 +29,12 @@ spring:
   profiles:
     active: dev
   mongodb:
-    uri: ${SPRING_DATA_MONGODB_URI}
+    host: ${SPRING_MONGODB_HOST}
+    port: ${SPRING_MONGODB_PORT}
+    database: ${SPRING_MONGODB_DATABASE}
+    authentication-database: ${SPRING_MONGODB_AUTHENTICATION_DATABASE}
+    username: ${SPRING_MONGODB_USERNAME}
+    password: ${SPRING_MONGODB_PASSWORD}
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
