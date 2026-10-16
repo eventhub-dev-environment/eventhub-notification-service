@@ -1,6 +1,28 @@
 server:
   port: 8086
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: "b3,w3c"
+    export:
+      zipkin:
+        endpoint: ${MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
 spring:
   application:
     name: notification-service
@@ -8,7 +30,7 @@ spring:
     active: dev
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://eventhub:SuperSecretMongoPassword2026!@localhost:27017/eventhub_notifications_db?authSource=admin}
+      uri: ${SPRING_DATA_MONGODB_URI}
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
@@ -17,8 +39,8 @@ spring:
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:juangamerospina@gmail.com}
-    password: ${SPRING_MAIL_PASSWORD:mmoktjqbbnsxdscx}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -28,4 +50,4 @@ spring:
             required: true
 
 gateway:
-  internal-secret: ${GATEWAY_INTERNAL_SECRET:EventHubInternalSecretKey2026!}
+  internal-secret: ${GATEWAY_INTERNAL_SECRET}
