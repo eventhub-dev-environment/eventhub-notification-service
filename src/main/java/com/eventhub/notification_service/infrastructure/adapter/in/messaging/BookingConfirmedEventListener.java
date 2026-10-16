@@ -33,7 +33,7 @@ public class BookingConfirmedEventListener {
     private final EventServiceClient eventServiceClient;
     private final NotificationRepositoryPort notificationRepositoryPort;
 
-    @Value("${gateway.internal-secret:internal-secret-eventhub-2026}")
+    @Value("${gateway.internal-secret}")
     private String gatewaySecret;
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_BOOKING_CONFIRMED_QUEUE)
