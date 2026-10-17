@@ -28,6 +28,13 @@ spring:
     name: notification-service
   profiles:
     active: dev
+  cloud:
+    openfeign:
+      client:
+        config:
+          event-service:
+            connectTimeout: 2000
+            readTimeout: 3000
   mongodb:
     uri: ${SPRING_DATA_MONGODB_URI}
   rabbitmq:
