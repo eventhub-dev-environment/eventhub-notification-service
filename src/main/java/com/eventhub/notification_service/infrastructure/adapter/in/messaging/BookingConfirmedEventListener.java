@@ -3,6 +3,7 @@ package com.eventhub.notification_service.infrastructure.adapter.in.messaging;
 import com.eventhub.notification_service.domain.model.Notification;
 import com.eventhub.notification_service.domain.model.NotificationStatus;
 import com.eventhub.notification_service.domain.model.NotificationType;
+import com.eventhub.notification_service.domain.port.out.BookingConfirmedEventInboxPort;
 import com.eventhub.notification_service.domain.port.out.NotificationRepositoryPort;
 import com.eventhub.notification_service.domain.util.PdfTicketGenerator;
 import com.eventhub.notification_service.domain.util.QRCodeGenerator;
@@ -13,9 +14,11 @@ import com.eventhub.notification_service.infrastructure.adapter.out.feign.dto.Ev
 import com.eventhub.notification_service.infrastructure.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -32,12 +35,15 @@ public class BookingConfirmedEventListener {
     private final EmailServiceAdapter emailServiceAdapter;
     private final EventServiceClient eventServiceClient;
     private final NotificationRepositoryPort notificationRepositoryPort;
+    private final BookingConfirmedEventInboxPort bookingConfirmedEventInboxPort;
 
     @Value("${gateway.internal-secret}")
     private String gatewaySecret;
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_BOOKING_CONFIRMED_QUEUE)
-    public void handleBookingConfirmed(Map<String, Object> event) {
+    public void handleBookingConfirmed(
+            Map<String, Object> event,
+            @Header(value = AmqpHeaders.MESSAGE_ID, required = false) String messageId) {
         String bookingId = (String) event.get("bookingId");
         String eventId = (String) event.get("eventId");
         String userId = (String) event.get("userId");
@@ -49,6 +55,12 @@ public class BookingConfirmedEventListener {
                 || isBlank(userEmail) || isBlank(transactionId) || totalPrice == null) {
             log.error("Evento de reserva confirmado inválido; falta información requerida para enviar la notificación");
             throw new AmqpRejectAndDontRequeueException("Evento de reserva confirmado incompleto");
+        }
+
+        String inboxId = isBlank(messageId) ? "legacy-booking-confirmed:" + bookingId : messageId;
+        if (bookingConfirmedEventInboxPort.isProcessed(inboxId)) {
+            log.info("Evento de reserva confirmado ya procesado; se omite el mensaje {}", inboxId);
+            return;
         }
 
         log.info("Evento de reserva confirmada recibido para bookingId: {}", bookingId);
@@ -118,6 +130,7 @@ public class BookingConfirmedEventListener {
                 .createdAt(LocalDateTime.now())
                 .build());
 
+        bookingConfirmedEventInboxPort.markProcessed(inboxId);
         log.info(">>>> NOTIFICACIÓN GUARDADA EN MONGODB PARA EL USUARIO {}", userId);
     }
 

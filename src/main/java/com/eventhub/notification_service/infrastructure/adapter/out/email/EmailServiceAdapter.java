@@ -58,7 +58,9 @@ public class EmailServiceAdapter {
             mailSender.send(message);
             log.info("Correo de confirmación enviado exitosamente con PDF adjunto a {}", to);
         } catch (Exception e) {
-            log.error("Error al enviar el correo de confirmación: {}", e.getMessage(), e);
+            log.error("Error al enviar el correo de confirmación", e);
+            throw new IllegalStateException("No se pudo enviar el correo de confirmación", e);
         }
     }
+
 }
